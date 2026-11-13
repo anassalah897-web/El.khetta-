@@ -23,6 +23,13 @@ const CITY_BOUNDS = {
   'الجيزة': [29.9, 31.04, 30.13, 31.33],
   'الإسكندرية': [31.08, 29.76, 31.3, 30.12],
 };
+const OVERPASS_ENDPOINTS = [
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+];
+const placesCache = new Map();
+const PLACES_CACHE_MS = 6 * 60 * 60 * 1000;
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
@@ -57,15 +64,35 @@ async function savePlan(db, plan) {
 }
 async function nearbyPlaces(city) {
   if (!CITY_BOUNDS[city]) throw new Error('المدينة غير مدعومة.');
+  const cached = placesCache.get(city);
+  if (cached && Date.now() - cached.savedAt < PLACES_CACHE_MS) return cached.items;
   const [south, west, north, east] = CITY_BOUNDS[city];
   const bbox = `${south},${west},${north},${east}`;
   const query = `[out:json][timeout:25];(node["amenity"~"cafe|restaurant"]["name"](${bbox});way["amenity"~"cafe|restaurant"]["name"](${bbox});relation["amenity"~"cafe|restaurant"]["name"](${bbox}););out center tags;`;
-  const response = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8', 'user-agent': 'YallaNkhattat/0.1' },
-    body: `data=${encodeURIComponent(query)}`, signal: AbortSignal.timeout(30000),
-  });
-  if (!response.ok) throw new Error(`مصدر بيانات الأماكن غير متاح حاليًا (${response.status}).`);
-  const data = await response.json();
+  let data;
+  let lastError;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8', 'user-agent': 'YallaNkhattat/0.1 (Egypt outing planner)' },
+        body: `data=${encodeURIComponent(query)}`, signal: AbortSignal.timeout(12000),
+      });
+      if (response.status === 429 || response.status === 406) {
+        throw new Error(`مصدر بيانات الأماكن يطلب تخفيف الطلبات (${response.status}).`);
+      }
+      if (!response.ok) {
+        lastError = new Error(`مصدر بيانات الأماكن غير متاح حاليًا (${response.status}).`);
+        if (response.status < 500) break;
+        continue;
+      }
+      data = await response.json();
+      break;
+    } catch (error) {
+      lastError = error;
+      if (error.message.includes('(429)') || error.message.includes('(406)')) break;
+    }
+  }
+  if (!data) throw lastError || new Error('مصدر بيانات الأماكن غير متاح حاليًا.');
   const center = city === 'القاهرة' ? [30.05, 31.25] : city === 'الجيزة' ? [30.01, 31.17] : [31.2, 29.91];
   const places = (data.elements || []).flatMap((item) => {
     const tags = item.tags || {}, lat = item.lat ?? item.center?.lat, lon = item.lon ?? item.center?.lon;
@@ -76,7 +103,9 @@ async function nearbyPlaces(city) {
       openingHours: tags.opening_hours || '', price: null, osmUrl: mapUrl(lat, lon) }];
   });
   places.sort((a, b) => ((a.lat-center[0])**2+(a.lon-center[1])**2) - ((b.lat-center[0])**2+(b.lon-center[1])**2));
-  return places.slice(0, 160);
+  const result = places.slice(0, 160);
+  placesCache.set(city, { items: result, savedAt: Date.now() });
+  return result;
 }
 async function placePhotos(name, city) {
   const params = new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: `${name} ${city} Egypt`, gsrnamespace: '6', gsrlimit: '4', prop: 'imageinfo', iiprop: 'url|extmetadata', iiurlwidth: '640', iiextmetadatafilter: 'Artist|LicenseShortName|LicenseUrl|UsageTerms', format: 'json', origin: '*' });
