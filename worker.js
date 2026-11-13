@@ -1,0 +1,180 @@
+const CATALOG = {
+  'القاهرة': [
+    { name: 'المتحف المصري', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', cost: 180, lat: 30.0478, lon: 31.2336 },
+    { name: 'غداء في وسط البلد', category: 'أكل محلي', time: '١:٠٠ م', cost: 300, lat: 30.047, lon: 31.239 },
+    { name: 'جولة في شارع المعز', category: 'تمشية وتاريخ', time: '٤:٠٠ م', cost: 120, lat: 30.047, lon: 31.2623 },
+    { name: 'قعدة على النيل', category: 'منظر النيل', time: '٧:٠٠ م', cost: 350, lat: 30.043, lon: 31.223 },
+  ],
+  'الجيزة': [
+    { name: 'منطقة أهرامات الجيزة', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', cost: 300, lat: 29.9792, lon: 31.1342 },
+    { name: 'غداء بإطلالة على الأهرامات', category: 'أكل محلي', time: '١:٠٠ م', cost: 350, lat: 29.985, lon: 31.137 },
+    { name: 'زيارة المتحف المصري الكبير', category: 'ثقافة', time: '٤:٠٠ م', cost: 400, lat: 29.995, lon: 31.1193 },
+    { name: 'عشاء هادئ في الجيزة', category: 'أكل', time: '٧:٣٠ م', cost: 300, lat: 29.992, lon: 31.137 },
+  ],
+  'الإسكندرية': [
+    { name: 'قلعة قايتباي', category: 'تاريخ وبحر', time: '٩:٠٠ ص', cost: 100, lat: 31.21375, lon: 29.8854 },
+    { name: 'غداء سمك على البحر', category: 'أكل محلي', time: '١٢:٠٠ م', cost: 450, lat: 31.213, lon: 29.9 },
+    { name: 'مكتبة الإسكندرية', category: 'ثقافة', time: '٣:٠٠ م', cost: 150, lat: 31.2089, lon: 29.9092 },
+    { name: 'تمشية على الكورنيش', category: 'بحر وغروب', time: '٦:٠٠ م', cost: 0, lat: 31.205, lon: 29.915 },
+  ],
+};
+const CITY_BOUNDS = {
+  'القاهرة': [29.93, 31.14, 30.17, 31.42],
+  'الجيزة': [29.9, 31.04, 30.13, 31.33],
+  'الإسكندرية': [31.08, 29.76, 31.3, 30.12],
+};
+
+const json = (data, status = 200) => new Response(JSON.stringify(data), {
+  status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+});
+const text = (value, max = 100) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const plainText = (value) => String(value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim().slice(0, 160);
+const mapUrl = (lat, lon) => `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`;
+const budgetCap = (plan) => plan.budgetMode === 'group'
+  ? plan.groupBudget / plan.expectedMembers
+  : Math.min(...plan.participants.map((member) => member.budget).filter(Number.isFinite));
+function refreshSelections(plan) {
+  let remaining = budgetCap(plan);
+  for (const activity of plan.activities) {
+    const supported = activity.kind === 'catalog' || activity.votes.length > plan.participants.length / 2;
+    activity.selected = supported && activity.cost <= remaining;
+    if (activity.selected) remaining -= activity.cost;
+  }
+}
+function cleanPlan(plan) {
+  return { ...plan, perPersonCost: plan.activities.filter((a) => a.selected).reduce((sum, a) => sum + a.cost, 0) };
+}
+async function readPlan(db, id) {
+  const row = await db.prepare('SELECT payload FROM travel_plans WHERE id = ?').bind(id).first();
+  if (!row) return null;
+  try { return JSON.parse(row.payload); } catch { return null; }
+}
+async function savePlan(db, plan) {
+  plan.updatedAt = new Date().toISOString();
+  await db.prepare(`INSERT INTO travel_plans (id, created_at, updated_at, payload) VALUES (?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at, payload = excluded.payload`)
+    .bind(plan.id, plan.createdAt, plan.updatedAt, JSON.stringify(plan)).run();
+}
+async function nearbyPlaces(city) {
+  if (!CITY_BOUNDS[city]) throw new Error('المدينة غير مدعومة.');
+  const [south, west, north, east] = CITY_BOUNDS[city];
+  const bbox = `${south},${west},${north},${east}`;
+  const query = `[out:json][timeout:25];(node["amenity"~"cafe|restaurant"]["name"](${bbox});way["amenity"~"cafe|restaurant"]["name"](${bbox});relation["amenity"~"cafe|restaurant"]["name"](${bbox}););out center tags;`;
+  const response = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8', 'user-agent': 'YallaNkhattat/0.1' },
+    body: `data=${encodeURIComponent(query)}`, signal: AbortSignal.timeout(30000),
+  });
+  if (!response.ok) throw new Error(`مصدر بيانات الأماكن غير متاح حاليًا (${response.status}).`);
+  const data = await response.json();
+  const center = city === 'القاهرة' ? [30.05, 31.25] : city === 'الجيزة' ? [30.01, 31.17] : [31.2, 29.91];
+  const places = (data.elements || []).flatMap((item) => {
+    const tags = item.tags || {}, lat = item.lat ?? item.center?.lat, lon = item.lon ?? item.center?.lon;
+    if (!tags.name || !Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+    return [{ id: `osm-${item.type}-${item.id}`, name: tags['name:ar'] || tags.name, lat, lon,
+      type: tags.amenity === 'cafe' ? 'كافيه' : 'مطعم', cuisine: tags.cuisine || '',
+      address: [tags['addr:street'], tags['addr:housenumber'], tags['addr:suburb']].filter(Boolean).join('، '),
+      openingHours: tags.opening_hours || '', price: null, osmUrl: mapUrl(lat, lon) }];
+  });
+  places.sort((a, b) => ((a.lat-center[0])**2+(a.lon-center[1])**2) - ((b.lat-center[0])**2+(b.lon-center[1])**2));
+  return places.slice(0, 160);
+}
+async function placePhotos(name, city) {
+  const params = new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: `${name} ${city} Egypt`, gsrnamespace: '6', gsrlimit: '4', prop: 'imageinfo', iiprop: 'url|extmetadata', iiurlwidth: '640', iiextmetadatafilter: 'Artist|LicenseShortName|LicenseUrl|UsageTerms', format: 'json', origin: '*' });
+  const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'user-agent': 'YallaNkhattat/0.1' }, signal: AbortSignal.timeout(15000) });
+  if (!response.ok) throw new Error('مصدر الصور غير متاح حاليًا.');
+  const data = await response.json();
+  return Object.values(data.query?.pages || {}).flatMap((page) => {
+    const image = page.imageinfo?.[0];
+    if (!image?.thumburl?.startsWith('https://upload.wikimedia.org/')) return [];
+    const meta = image.extmetadata || {};
+    return [{ title: plainText(page.title?.replace(/^File:/, '')), url: image.thumburl, pageUrl: image.descriptionurl,
+      author: plainText(meta.Artist?.value || meta.Credit?.value || 'غير مذكور'),
+      license: plainText(meta.LicenseShortName?.value || meta.UsageTerms?.value || 'راجع صفحة الصورة'),
+      licenseUrl: meta.LicenseUrl?.value || image.descriptionurl }];
+  }).slice(0, 4);
+}
+
+async function handleApi(request, env, url) {
+  if (request.method === 'GET' && url.pathname === '/api/health') {
+    await env.DB.prepare('SELECT 1').first();
+    return json({ ok: true, storage: 'cloudflare-d1' });
+  }
+  if (request.method === 'GET' && url.pathname === '/api/places') {
+    const city = text(url.searchParams.get('city'), 40);
+    try { return json({ city, attribution: '© OpenStreetMap contributors', places: await nearbyPlaces(city) }); }
+    catch (error) { return json({ error: error.message, places: [] }, 503); }
+  }
+  if (request.method === 'GET' && url.pathname === '/api/photos') {
+    const name = text(url.searchParams.get('name'), 80), city = text(url.searchParams.get('city'), 40);
+    if (!name || !CITY_BOUNDS[city]) return json({ error: 'المكان أو المدينة غير صالح.' }, 400);
+    try { return json({ photos: await placePhotos(name, city) }); }
+    catch (error) { return json({ error: error.message, photos: [] }, 503); }
+  }
+  if (request.method === 'POST' && url.pathname === '/api/plans') {
+    let body;
+    try { body = await request.json(); } catch { return json({ error: 'بيانات الطلب غير صالحة.' }, 400); }
+    const city = text(body.city, 40), name = text(body.name, 50), clientId = text(body.clientId, 80);
+    const budgetMode = body.budgetMode === 'group' ? 'group' : 'individual', budget = Number(body.budget);
+    const expectedMembers = Math.max(1, Math.min(30, Number(body.expectedMembers) || 1));
+    if (!CATALOG[city] || !name || !clientId || !(budget > 0)) return json({ error: 'املأ الاسم والمدينة والميزانية قبل إنشاء الخطة.' }, 400);
+    const now = new Date().toISOString();
+    const plan = { id: crypto.randomUUID(), createdAt: now, city, planType: body.planType === 'trip' ? 'trip' : 'outing', date: text(body.date, 20), expectedMembers,
+      budgetMode, groupBudget: budgetMode === 'group' ? budget : null,
+      participants: [{ id: clientId, name, budget: budgetMode === 'individual' ? budget : null, joinedAt: now }],
+      activities: CATALOG[city].map((activity, i) => ({ id: `place-${i+1}`, ...activity, osmUrl: mapUrl(activity.lat, activity.lon), kind: 'catalog', addedBy: null, votes: [], selected: false })) };
+    refreshSelections(plan); await savePlan(env.DB, plan); return json(cleanPlan(plan), 201);
+  }
+  const match = url.pathname.match(/^\/api\/plans\/([0-9a-f-]+)$/i);
+  if (!match) return null;
+  const plan = await readPlan(env.DB, match[1]);
+  if (!plan) return json({ error: 'الخطة غير موجودة.' }, 404);
+  if (request.method === 'GET') return json(cleanPlan(plan));
+  if (request.method !== 'POST') return json({ error: 'الطريقة غير مدعومة.' }, 405);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'بيانات الطلب غير صالحة.' }, 400); }
+  const action = text(body.action, 30), clientId = text(body.clientId, 80);
+  if (!clientId) return json({ error: 'تعذر تحديد العضو.' }, 400);
+  if (action === 'join') {
+    const name = text(body.name, 50), existing = plan.participants.find((member) => member.id === clientId);
+    if (!existing) {
+      const budget = plan.budgetMode === 'individual' ? Number(body.budget) : null;
+      if (!name || (plan.budgetMode === 'individual' && !(budget > 0))) return json({ error: 'اكتب اسمك وميزانيتك الفردية للانضمام.' }, 400);
+      if (plan.participants.length >= 30) return json({ error: 'وصلت الخطة للحد الأقصى من الأعضاء.' }, 400);
+      plan.participants.push({ id: clientId, name, budget, joinedAt: new Date().toISOString() });
+      refreshSelections(plan); await savePlan(env.DB, plan);
+    }
+    return json(cleanPlan(plan));
+  }
+  if (!plan.participants.some((member) => member.id === clientId)) return json({ error: 'انضم للخطة قبل التعديل أو التصويت.' }, 403);
+  if (action === 'suggest') {
+    const name = text(body.name, 80), cost = Number(body.cost), lat = Number(body.lat), lon = Number(body.lon);
+    if (!name || body.cost === undefined || body.cost === null || String(body.cost).trim() === '' || !Number.isFinite(cost) || cost < 0 || cost > 1000000) return json({ error: 'أدخل اسم المكان وتكلفته التقديرية للفرد.' }, 400);
+    plan.activities.push({ id: crypto.randomUUID(), name, category: 'اقتراح من المجموعة', time: 'وقت مقترح', cost, kind: 'custom', addedBy: clientId, votes: [clientId], selected: false,
+      ...(Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { lat, lon, osmUrl: mapUrl(lat, lon) } : {}) });
+    refreshSelections(plan);
+  } else if (action === 'vote') {
+    const activity = plan.activities.find((item) => item.id === body.activityId);
+    if (!activity) return json({ error: 'النشاط غير موجود.' }, 404);
+    activity.votes = activity.votes.includes(clientId) ? activity.votes.filter((vote) => vote !== clientId) : [...activity.votes, clientId];
+    refreshSelections(plan);
+  } else return json({ error: 'الإجراء غير معروف.' }, 400);
+  await savePlan(env.DB, plan);
+  return json(cleanPlan(plan));
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/')) {
+      try {
+        const response = await handleApi(request, env, url);
+        if (response) return response;
+        return json({ error: 'الصفحة غير موجودة.' }, 404);
+      } catch (error) {
+        console.error(error);
+        return json({ error: 'حصل خطأ غير متوقع.' }, 500);
+      }
+    }
+    return env.ASSETS.fetch(request);
+  },
+};

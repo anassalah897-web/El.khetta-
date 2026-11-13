@@ -1,2 +1,9 @@
 data/plans.json
 data/plans.json.tmp
+node_modules/
+.wrangler/
+.wrangler-config/
+.dev.vars
+.env
+.env.*
+!.env.example

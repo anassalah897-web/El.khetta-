@@ -5,12 +5,19 @@
   "description": "Group outing and trip planner for Egypt",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy",
+    "cf:migrate:local": "wrangler d1 migrations apply yalla-plans-db --local",
+    "cf:migrate:remote": "wrangler d1 migrations apply yalla-plans-db --remote"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.45.0"
   }
 }
