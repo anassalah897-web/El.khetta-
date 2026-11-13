@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="خطط خروجاتك ورحلاتك في مصر على قد ميزانيتك. اكتشف أماكن قريبة وشارك أصحابك في الخطة.">
+  <title>يلا نخطط | أماكن وخروجات في مصر</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#18332a;--muted:#6f7f78;--green:#176b52;--green2:#e8f3eb;--cream:#faf8f1;--line:#e5e8e0;--white:#fff;--orange:#ed9850;--red:#ae5146;--shadow:0 14px 38px #19382a12}
+    *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:Cairo,Arial,sans-serif}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit}.shell{max-width:1180px;margin:auto;padding:0 22px}.topbar{height:72px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}.logo{height:38px;width:38px;border-radius:13px;background:var(--green);color:#fff;display:grid;place-items:center}.topnote{font-size:13px;color:var(--muted)}.hero{padding:34px 0 20px;display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center}.eyebrow{color:var(--green);font-weight:700}.hero h1{font-size:clamp(32px,4vw,48px);line-height:1.3;margin:8px 0}.hero p{color:var(--muted);line-height:1.9;margin:0}.hero-art{height:205px;border-radius:24px;background:linear-gradient(135deg,#144d3ab5,#0f2516a8),url('https://images.unsplash.com/photo-1572252009286-268acec5ca0a?auto=format&fit=crop&w=1200&q=85') center/cover;display:flex;align-items:end;padding:18px;color:#fff}.hero-art span{background:#ffffffdf;color:var(--ink);border-radius:12px;padding:8px 12px;font-weight:700}.section{background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px;margin:14px 0 22px;box-shadow:var(--shadow)}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}.section h2{font-size:20px;margin:0}.hint{font-size:12px;color:var(--muted);margin-top:4px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}.field input,.field select,.suggest-row input,.place-search{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#fff;color:var(--ink);outline:0}.field input:focus,.field select:focus,.suggest-row input:focus{border-color:var(--green);box-shadow:0 0 0 3px #176b521c}.wide{grid-column:span 2}.mode{display:flex;gap:8px}.mode button,.soft{background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 13px;color:var(--muted)}.mode button.active,.soft.active{border-color:#a6cbb5;background:var(--green2);color:var(--green);font-weight:700}.primary{background:var(--green);border:0;border-radius:11px;padding:11px 17px;color:white;font-weight:700}.primary:hover{background:#10543f}.outline{background:white;border:1px solid var(--line);border-radius:11px;padding:10px 14px;color:var(--green);font-weight:700}.create-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}.map-tools{display:flex;gap:9px;align-items:center}.map-tools select{max-width:180px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px}.map-tools button{white-space:nowrap}.map-layout{display:grid;grid-template-columns:1fr;gap:14px}.map{height:420px;border-radius:17px;overflow:hidden;background:#e7eee9;z-index:0}.place-panel{min-width:0}.place-search{margin-bottom:10px}.place-list{height:370px;overflow:auto;display:grid;align-content:start;gap:9px;padding:1px 3px 5px}.place-card{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}.place-title{font-weight:800}.place-badge{display:inline-block;font-size:11px;color:var(--green);background:var(--green2);padding:3px 8px;border-radius:20px;margin-inline-start:6px}.place-meta{font-size:12px;color:var(--muted);margin:5px 0 9px;line-height:1.7}.place-actions{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center}.price-input{width:110px;border:1px solid var(--line);border-radius:9px;padding:8px;font:inherit}.small-button{border:1px solid #b7d0c1;color:var(--green);background:#f3f8f3;border-radius:9px;padding:8px 10px;font-weight:700}.map-error{padding:20px;color:var(--muted);font-size:14px}.statrow{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px}.stat{background:var(--cream);border-radius:13px;padding:11px}.stat small{display:block;color:var(--muted);font-size:11px}.stat strong{font-size:16px}.people{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.person{padding:7px 10px;background:var(--green2);border-radius:22px;font-size:12px}.activity{display:grid;grid-template-columns:76px 1fr auto;gap:9px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.activity:last-child{border-bottom:0}.time{font-size:12px;color:var(--muted)}.activity-name{font-weight:700}.activity-meta{font-size:12px;color:var(--muted);margin-top:3px}.vote{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 11px;color:var(--green)}.vote.voted{background:var(--green2);border-color:#a7cbb5;font-weight:700}.selected-label{color:var(--green);font-size:11px;background:var(--green2);border-radius:20px;padding:4px 8px;margin-inline-start:7px}.waiting-label{color:#9b6b2f;font-size:11px;background:#fff3dc;border-radius:20px;padding:4px 8px;margin-inline-start:7px}.suggest-row{display:grid;grid-template-columns:1fr 145px auto;gap:8px;margin-top:14px}.share-row{display:flex;gap:9px;align-items:center;margin-top:15px;flex-wrap:wrap}.share-row input{flex:1;min-width:220px;padding:10px;border:1px solid var(--line);border-radius:10px;color:var(--muted)}.notice{font-size:12px;color:var(--muted);line-height:1.7;margin-top:12px}.hidden{display:none!important}.error{color:var(--red);font-size:13px;margin-top:9px}.empty{color:var(--muted);font-size:13px;padding:16px}.footer{text-align:center;color:var(--muted);font-size:12px;padding:12px 0 30px}.owner-note{font-size:12px;color:var(--muted)}
+    @media(max-width:850px){.hero{grid-template-columns:1fr}.hero-art{height:160px}.map-layout{grid-template-columns:1fr}.map{height:320px}.place-list{height:300px}.grid{grid-template-columns:1fr 1fr}.statrow{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:560px){.shell{padding:0 13px}.section{padding:16px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.topnote{display:none}.map-tools{flex-wrap:wrap}.map-tools select{max-width:none;flex:1}.map{height:280px}.place-list{height:280px}.statrow{grid-template-columns:1fr 1fr}.activity{grid-template-columns:58px 1fr auto}.suggest-row{grid-template-columns:1fr 110px}.suggest-row button{grid-column:span 2}.create-actions{align-items:stretch;flex-direction:column}.hero{padding-top:24px}}
+  .photo-button{background:#fff;border:1px solid var(--line);color:var(--green);border-radius:9px;padding:7px 9px;font-weight:700;font-size:12px;margin-top:9px}.photo-gallery{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.photo-gallery a{display:block;border:1px solid var(--line);border-radius:10px;overflow:hidden;text-decoration:none}.photo-gallery img{width:100%;height:100px;object-fit:cover;display:block}.photo-credit{font-size:10px;line-height:1.5;color:var(--muted);padding:5px}</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar"><div class="brand"><span class="logo">✦</span><span>يلا نخطط</span></div><div class="topnote">خروجات ورحلات في مصر على قد ميزانيتك</div></header>
+    <section class="hero" id="welcome"><div><div class="eyebrow">اكتشف أماكن حواليك وخطط مع صحابك</div><h1>خطة حلوة، على ميزانيتك.</h1><p>اختار المدينة والميزانية، شوف المطاعم والكافيهات على الخريطة، وشارك مجموعتك في الخطة والتصويت.</p></div><div class="hero-art"><span>ابدأ من مكانك أو اختار مدينة 🇪🇬</span></div></section>
+
+    <main id="createPage">
+      <section class="section">
+        <div class="section-head"><div><h2>ابدأ خطة جديدة</h2><div class="hint">في الميزانية الفردية، كل عضو يدخل ميزانيته عند الانضمام.</div></div><span class="place-badge">القاهرة · الجيزة · الإسكندرية</span></div>
+        <form id="createForm">
+          <div class="grid">
+            <div class="field"><label for="creatorName">اسمك</label><input id="creatorName" required maxlength="50" placeholder="مثال: مريم"></div>
+            <div class="field"><label for="planType">نوع الخطة</label><select id="planType"><option value="outing">خروجة يوم واحد</option><option value="trip">رحلة متعددة الأيام</option></select></div>
+            <div class="field"><label for="city">المدينة</label><select id="city"><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div>
+            <div class="field"><label for="date">التاريخ</label><input id="date" type="date"></div>
+            <div class="field"><label for="expectedMembers">عدد المجموعة المتوقع</label><input id="expectedMembers" type="number" min="1" max="30" value="4"></div>
+            <div class="field"><label>طريقة الميزانية</label><div class="mode"><button type="button" class="active" data-mode="individual">فردية</button><button type="button" data-mode="group">جماعية</button></div></div>
+            <div class="field wide"><label for="budget" id="budgetLabel">ميزانيتك للفرد (جنيه)</label><input id="budget" type="number" min="1" required placeholder="اكتب المبلغ المناسب لك"></div>
+          </div>
+          <div class="create-actions"><span class="owner-note">تقدر تعدل الخطة وتدعو أصحابك بعد إنشائها.</span><button class="primary" id="createButton" type="submit">أنشئ خطتي ←</button></div>
+          <div class="error hidden" id="createError"></div>
+        </form>
+      </section>
+    </main>
+
+    <section class="section" id="mapSection">
+        <div class="section-head"><div><h2>اكتشف مطاعم وكافيهات</h2><div class="hint" id="mapHint">الاقتراحات ظاهرة هنا. اضغط «اعرف الطريق» لعرض موقع المكان.</div></div><div class="map-tools"><select id="mapCity" aria-label="اختيار المدينة"><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div></div>
+      <div class="map-layout"><div class="place-panel"><input class="place-search" id="placeSearch" placeholder="ابحث عن مطعم أو كافيه"><div class="place-list" id="placeList"><div class="empty">جاري تحميل الأماكن…</div></div></div><div id="mapPanel" class="hidden"><div id="map" class="map" aria-label="خريطة المكان"></div><div class="share-row"><span id="routeStatus" class="hint">موقع العميل لا يُطلب إلا عند اختيار «اعرف الطريق».</span><a id="directionsLink" class="primary hidden" target="_blank" rel="noreferrer">افتح الاتجاهات في خرائط Google ↗</a></div></div></div>
+      <div class="notice">مواقع الأماكن لا تظهر إلا عند طلب الطريق. عندها فقط يمكن للمتصفح أن يطلب إذنك لاستخدام موقعك. أسماء الأماكن من OpenStreetMap؛ والأسعار يضيفها الأعضاء عند اقتراح المكان. © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.</div>
+    </section>
+
+    <main id="planPage" class="hidden">
+      <section class="section">
+        <div class="section-head"><div><h2 id="planTitle">الخطة المشتركة</h2><div class="hint" id="planSub"></div></div><button id="backButton" class="outline" type="button">إنشاء خطة جديدة</button></div>
+        <div id="joinPanel" class="hidden">
+          <h3>انضم للخطة</h3><div class="grid"><div class="field"><label for="joinName">اسمك</label><input id="joinName" maxlength="50" placeholder="اسمك"></div><div class="field" id="joinBudgetField"><label for="joinBudget">ميزانيتك للفرد (جنيه)</label><input id="joinBudget" type="number" min="1" placeholder="المبلغ المناسب لك"></div><div class="field"><label>&nbsp;</label><button id="joinButton" class="primary" type="button">انضم للخطة</button></div></div><div id="joinError" class="error hidden"></div>
+        </div>
+        <div id="planContent" class="hidden">
+          <div class="statrow"><div class="stat"><small>الميزانية</small><strong id="budgetStat">—</strong></div><div class="stat"><small>التكلفة التقديرية للفرد</small><strong id="perPersonStat">—</strong></div><div class="stat"><small>إجمالي المجموعة المتوقع</small><strong id="groupTotalStat">—</strong></div><div class="stat"><small>المتبقي للفرد</small><strong id="remainingStat">—</strong></div><div class="stat"><small>أعضاء الخطة</small><strong id="memberCountStat">—</strong></div></div>
+          <div class="people" id="peopleList"></div>
+          <div class="hint">الأنشطة المختارة تلتزم بأقل ميزانية فردية بين الأعضاء، أو بنصيب الفرد من الميزانية الجماعية.</div>
+          <div id="activityList"></div>
+          <form id="suggestForm" class="suggest-row"><input id="suggestName" maxlength="80" placeholder="اقترح المكان أو النشاط"><input id="suggestCost" type="number" min="0" placeholder="تكلفته للفرد"><button class="primary" type="submit">أضف اقتراح</button></form>
+          <div id="suggestError" class="error hidden"></div>
+          <div class="share-row"><button class="primary" id="copyLink" type="button">انسخ رابط دعوة المجموعة</button><input id="shareLink" readonly><span class="hint" id="copyStatus"></span></div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">يلا نخطط · خططوا سوا، واستمتعوا أكتر</footer>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const money = (value) => `${Number(value || 0).toLocaleString('ar-EG')} ج.م`;
+    const state = { budgetMode: 'individual', plan: null, places: [], map: null, markers: null, userLocation: null, activePlace: null, locationAsked: false };
+    const memberKey = (planId) => `yalla-member-${planId}`;
+    const memberIdFor = (planId) => {
+      let id = localStorage.getItem(memberKey(planId));
+      if (!id) { id = crypto.randomUUID(); localStorage.setItem(memberKey(planId), id); }
+      return id;
+    };
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+    async function api(url, options = {}) {
+      const response = await fetch(url, { headers: { 'content-type': 'application/json' }, ...options });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'حصل خطأ. حاول تاني.');
+      return data;
+    }
+    function showError(element, message) { element.textContent = message; element.classList.remove('hidden'); }
+    function initMap() {
+      if (state.map) return;
+      if (!window.L) { $('#map').innerHTML = '<div class="map-error">تعذر تحميل الخريطة. تأكد من اتصال الإنترنت.</div>'; return; }
+      state.map = L.map('map').setView([30.05, 31.25], 12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+      }).addTo(state.map);
+      state.markers = L.layerGroup().addTo(state.map);
+    }
+    function distanceKm(lat, lon) {
+      if (!state.userLocation) return null;
+      const rad = Math.PI / 180, [a, b] = state.userLocation;
+      const dLat = (lat - a) * rad, dLon = (lon - b) * rad;
+      const hav = Math.sin(dLat/2)**2 + Math.cos(a*rad)*Math.cos(lat*rad)*Math.sin(dLon/2)**2;
+      return 6371 * 2 * Math.atan2(Math.sqrt(hav), Math.sqrt(1-hav));
+    }
+    function visiblePlaces() {
+      const term = $('#placeSearch').value.trim().toLowerCase();
+      const matching = state.places.filter((place) => `${place.name} ${place.type} ${place.cuisine} ${place.address}`.toLowerCase().includes(term));
+      if (state.userLocation) matching.sort((a, b) => distanceKm(a.lat, a.lon) - distanceKm(b.lat, b.lon));
+      return matching;
+    }
+    function renderPlaces() {
+      const list = $('#placeList');
+      const places = visiblePlaces();
+      if (!places.length) list.innerHTML = '<div class="empty">مفيش أماكن مطابقة حاليًا. جرّب كلمة تانية أو اختار مدينة مختلفة.</div>';
+      else list.innerHTML = places.map((place) => {
+        const dist = distanceKm(place.lat, place.lon);
+        const meta = [place.cuisine, place.address, place.openingHours, dist !== null ? `${dist.toFixed(1)} كم من موقعك` : 'اضغط على الخريطة لمشاهدة المكان'].filter(Boolean).join(' · ');
+        const planButton = state.plan && state.plan.participants.some((p) => p.id === memberIdFor(state.plan.id))
+          ? `<div class="place-actions"><input class="price-input" data-price="${escapeHtml(place.id)}" type="number" min="0" placeholder="السعر للفرد"><button class="small-button" data-add-place="${escapeHtml(place.id)}">أضف للخطة</button></div>`
+          : '';
+        return `<article class="place-card"><div class="place-title">${escapeHtml(place.name)} <span class="place-badge">${escapeHtml(place.type)}</span></div><div class="place-meta">${escapeHtml(meta || 'الموقع مخفي لحد ما تطلبه')}</div><button class="small-button" type="button" data-show-place="${escapeHtml(place.id)}">اعرف الطريق</button>${planButton}<button class="photo-button" type="button" data-photos="${escapeHtml(place.id)}">شوف صور المكان</button><div class="photo-gallery hidden" id="photos-${escapeHtml(place.id)}"></div></article>`;
+      }).join('');
+      if (state.markers) {
+        state.markers.clearLayers();
+        places.forEach((place) => {
+          const marker = L.marker([place.lat, place.lon]).bindPopup(`<strong>${escapeHtml(place.name)}</strong><br>${escapeHtml(place.type)}${place.cuisine ? `<br>${escapeHtml(place.cuisine)}` : ''}`);
+          marker.on('click', () => marker.openPopup()); marker.addTo(state.markers);
+        });
+        if (state.plan) state.plan.activities.filter((a) => a.selected && Number.isFinite(a.lat) && Number.isFinite(a.lon)).forEach((a) => {
+          L.marker([a.lat, a.lon]).bindPopup(`<strong>${escapeHtml(a.name)}</strong><br>${escapeHtml(money(a.cost))} للفرد`).addTo(state.markers);
+        });
+        if (state.userLocation) L.circleMarker(state.userLocation, { radius: 8, color: '#176b52', fillColor: '#176b52', fillOpacity: .85 }).bindPopup('موقعك الحالي').addTo(state.markers);
+        if (state.activePlace) L.circleMarker([state.activePlace.lat, state.activePlace.lon], { radius: 12, color: '#ed9850', fillColor: '#ed9850', fillOpacity: .9 }).bindPopup(`<strong>${escapeHtml(state.activePlace.name)}</strong><br>${escapeHtml(state.activePlace.type)}`).addTo(state.markers);
+      }
+      $$('[data-add-place]').forEach((button) => button.addEventListener('click', async () => {
+        const place = state.places.find((item) => item.id === button.dataset.addPlace);
+        const rawPrice = $(`[data-price="${CSS.escape(place.id)}"]`).value.trim();
+        const price = Number(rawPrice);
+        if (rawPrice === '' || !(price >= 0)) { alert('اكتب التكلفة التقديرية للفرد عشان نراعي الميزانية.'); return; }
+        try {
+          state.plan = await api(`/api/plans/${state.plan.id}`, { method: 'POST', body: JSON.stringify({ action:'suggest', clientId:memberIdFor(state.plan.id), name:place.name, cost:price, lat:place.lat, lon:place.lon, osmUrl:place.osmUrl }) });
+          renderPlan();
+        } catch (error) { alert(error.message); }
+      }));
+      $$('[data-photos]').forEach((button) => button.addEventListener('click', async () => {
+        const place = state.places.find((item) => item.id === button.dataset.photos);
+        const gallery = $(`#photos-${CSS.escape(place.id)}`);
+        gallery.classList.remove('hidden');
+        if (gallery.dataset.loaded === 'true') return;
+        gallery.innerHTML = '<div class="empty">جاري البحث عن الصور…</div>';
+        try {
+          const result = await api(`/api/photos?name=${encodeURIComponent(place.name)}&city=${encodeURIComponent($('#mapCity').value)}`);
+          gallery.dataset.loaded = 'true';
+          gallery.innerHTML = result.photos.length ? result.photos.map((photo) => `<a href="${escapeHtml(photo.pageUrl)}" target="_blank" rel="noreferrer"><img loading="lazy" src="${escapeHtml(photo.url)}" alt="${escapeHtml(place.name)}"><div class="photo-credit">${escapeHtml(photo.author)} · ${escapeHtml(photo.license)}<br>Wikimedia Commons</div></a>`).join('') : '<div class="empty">ملقيناش صورًا للمكان ده في Wikimedia Commons.</div>';
+        } catch (error) { gallery.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; }
+      }));
+      $$('[data-show-place]').forEach((button) => button.addEventListener('click', () => {
+        const place = state.places.find((item) => item.id === button.dataset.showPlace);
+        showPlaceRoute(place);
+      }));
+    }
+    function showPlaceRoute(place) {
+      state.activePlace = place;
+      $('#mapPanel').classList.remove('hidden');
+      initMap();
+      if (state.map) {
+        requestAnimationFrame(() => {
+          state.map.invalidateSize();
+          state.map.setView([place.lat, place.lon], 15);
+        });
+      }
+      renderPlaces();
+      $('#routeStatus').textContent = 'اعرضنا موقع الوجهة. لو طلبت الاتجاهات من موقعك، المتصفح هيسألك عن الإذن؛ موقعك مش بيتحفظ في الموقع.';
+      const updateDirections = (origin = null) => {
+        const url = new URL('https://www.google.com/maps/dir/');
+        url.searchParams.set('api', '1');
+        url.searchParams.set('destination', `${place.lat},${place.lon}`);
+        if (origin) url.searchParams.set('origin', `${origin[0]},${origin[1]}`);
+        $('#directionsLink').href = url.toString();
+        $('#directionsLink').classList.remove('hidden');
+      };
+      $('#directionsLink').classList.add('hidden');
+      if (state.userLocation) {
+        updateDirections(state.userLocation);
+        $('#routeStatus').textContent = 'موقعك يظهر عندك فقط؛ اضغط لفتح الاتجاهات في خرائط Google.';
+      } else if (!state.locationAsked && navigator.geolocation) {
+        state.locationAsked = true;
+        navigator.geolocation.getCurrentPosition((position) => {
+          state.userLocation = [position.coords.latitude, position.coords.longitude];
+          renderPlaces();
+          updateDirections(state.userLocation);
+          $('#routeStatus').textContent = 'حددنا موقعك بعد إذنك. اضغط لفتح الاتجاهات؛ لن نحفظ موقعك في الموقع.';
+        }, () => {
+          updateDirections();
+          $('#routeStatus').textContent = 'لم يتم استخدام موقعك. الاتجاهات ستفتح على الوجهة، ويمكنك تحديد نقطة البداية في خرائط Google.';
+        }, { enableHighAccuracy:false, timeout:10000, maximumAge:60000 });
+      } else {
+        updateDirections();
+        $('#routeStatus').textContent = 'موقعك غير متاح؛ الاتجاهات ستفتح على الوجهة ويمكنك تحديد نقطة البداية في خرائط Google.';
+      }
+    }
+    async function loadPlaces(city) {
+      $('#mapHint').textContent = 'جاري تحميل المطاعم والكافيهات القريبة…';
+      $('#placeList').innerHTML = '<div class="empty">جاري تحميل الأماكن…</div>';
+      try {
+        const data = await api(`/api/places?city=${encodeURIComponent(city)}`);
+        state.places = data.places || [];
+        $('#mapHint').textContent = state.places.length ? `لقينا ${state.places.length.toLocaleString('ar-EG')} مطعم وكافيه في ${city}.` : `مفيش بيانات أماكن متاحة حاليًا في ${city}.`;
+        if (state.map) state.map.setView(city === 'القاهرة' ? [30.05,31.25] : city === 'الجيزة' ? [30.01,31.17] : [31.20,29.91], 12);
+      } catch (error) {
+        state.places = [];
+        $('#mapHint').textContent = 'تعذر تحميل الأماكن الآن. الخريطة تظل متاحة.';
+        $('#placeList').innerHTML = `<div class="map-error">${escapeHtml(error.message)}<br>غيّر المدينة أو حاول مرة تانية.</div>`;
+      }
+      renderPlaces();
+    }
+    function renderPlan() {
+      const plan = state.plan;
+      if (!plan) return;
+      $('#createPage').classList.add('hidden'); $('#welcome').classList.add('hidden'); $('#planPage').classList.remove('hidden');
+      $('#planTitle').textContent = plan.planType === 'trip' ? `رحلة في ${plan.city}` : `خروجة في ${plan.city}`;
+      $('#planSub').textContent = `${plan.date || 'التاريخ لم يُحدد'} · ${plan.expectedMembers} أشخاص متوقعين`;
+      const personalCap = plan.budgetMode === 'group' ? plan.groupBudget / plan.expectedMembers : Math.min(...plan.participants.map((m) => m.budget).filter(Number.isFinite));
+      const groupBudget = plan.budgetMode === 'group' ? plan.groupBudget : null;
+      const total = plan.perPersonCost * plan.expectedMembers;
+      $('#budgetStat').textContent = groupBudget ? money(groupBudget) + ' إجمالي' : money(personalCap) + ' للفرد';
+      $('#perPersonStat').textContent = money(plan.perPersonCost);
+      $('#groupTotalStat').textContent = money(total);
+      $('#remainingStat').textContent = money(Math.max(0, personalCap - plan.perPersonCost));
+      $('#memberCountStat').textContent = `${plan.participants.length} / ${plan.expectedMembers}`;
+      $('#peopleList').innerHTML = plan.participants.map((member) => `<span class="person">${escapeHtml(member.name)}${plan.budgetMode === 'individual' ? ` · ${money(member.budget)}` : ''}</span>`).join('');
+      const votesNeeded = Math.floor(plan.participants.length / 2) + 1;
+      $('#activityList').innerHTML = plan.activities.length ? plan.activities.map((activity) => {
+        const voted = activity.votes.includes(memberIdFor(plan.id));
+        const status = activity.selected ? '<span class="selected-label">داخل البرنامج</span>' : activity.kind === 'custom' ? `<span class="waiting-label">يحتاج ${Math.max(0,votesNeeded-activity.votes.length)} تصويت</span>` : '<span class="waiting-label">خارج الميزانية</span>';
+        return `<div class="activity"><div class="time">${escapeHtml(activity.time || 'وقت مقترح')}</div><div><div class="activity-name">${escapeHtml(activity.name)}${status}</div><div class="activity-meta">${escapeHtml(activity.category || '')} · ${money(activity.cost)} للفرد${activity.osmUrl ? ` · <a href="${escapeHtml(activity.osmUrl)}" target="_blank" rel="noreferrer">الموقع ↗</a>` : ''}</div><button class="photo-button" type="button" data-plan-photos="${escapeHtml(activity.id)}">شوف صور المكان</button><div class="photo-gallery hidden" id="planphotos-${escapeHtml(activity.id)}"></div></div><button class="vote ${voted?'voted':''}" data-vote="${escapeHtml(activity.id)}">♥ ${activity.votes.length}</button></div>`;
+      }).join('') : '<div class="empty">مفيش أماكن تناسب الميزانية الحالية. زوّد الميزانية أو غيّر المدينة.</div>';
+      $('#joinPanel').classList.add('hidden'); $('#planContent').classList.remove('hidden');
+      $('#shareLink').value = location.href;
+      $$('[data-vote]').forEach((button) => button.addEventListener('click', async () => {
+        try { state.plan = await api(`/api/plans/${plan.id}`, { method:'POST', body:JSON.stringify({ action:'vote', clientId:memberIdFor(plan.id), activityId:button.dataset.vote }) }); renderPlan(); }
+        catch (error) { alert(error.message); }
+      }));
+      $$('[data-plan-photos]').forEach((button) => button.addEventListener('click', async () => {
+        const activity = state.plan.activities.find((item) => item.id === button.dataset.planPhotos);
+        const gallery = $(`#planphotos-${CSS.escape(activity.id)}`);
+        gallery.classList.remove('hidden');
+        if (gallery.dataset.loaded === 'true') return;
+        gallery.innerHTML = '<div class="empty">جاري البحث عن الصور…</div>';
+        try {
+          const result = await api(`/api/photos?name=${encodeURIComponent(activity.name)}&city=${encodeURIComponent(plan.city)}`);
+          gallery.dataset.loaded = 'true';
+          gallery.innerHTML = result.photos.length ? result.photos.map((photo) => `<a href="${escapeHtml(photo.pageUrl)}" target="_blank" rel="noreferrer"><img loading="lazy" src="${escapeHtml(photo.url)}" alt="${escapeHtml(activity.name)}"><div class="photo-credit">${escapeHtml(photo.author)} · ${escapeHtml(photo.license)}<br>Wikimedia Commons</div></a>`).join('') : '<div class="empty">ملقيناش صورًا للمكان ده في Wikimedia Commons.</div>';
+        } catch (error) { gallery.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`; }
+      }));
+      renderPlaces();
+    }
+    async function openPlan(id) {
+      try {
+        state.plan = await api(`/api/plans/${id}`);
+        const memberId = localStorage.getItem(memberKey(id));
+        const isMember = state.plan.participants.some((p) => p.id === memberId);
+        $('#createPage').classList.add('hidden'); $('#welcome').classList.add('hidden'); $('#planPage').classList.remove('hidden');
+        if (isMember) renderPlan();
+        else {
+          $('#planContent').classList.add('hidden'); $('#joinPanel').classList.remove('hidden');
+          $('#joinBudgetField').classList.toggle('hidden', state.plan.budgetMode === 'group');
+          $('#planTitle').textContent = `انضم لخطة ${state.plan.city}`;
+          $('#planSub').textContent = `${state.plan.participants.length} أعضاء مشاركين`;
+          $('#joinButton').onclick = async () => {
+            const clientId = memberIdFor(id);
+            try {
+              state.plan = await api(`/api/plans/${id}`, { method:'POST', body:JSON.stringify({ action:'join', clientId, name:$('#joinName').value, budget:$('#joinBudget').value }) });
+              renderPlan(); loadPlaces(state.plan.city);
+            } catch (error) { showError($('#joinError'), error.message); }
+          };
+        }
+        $('#mapCity').value = state.plan.city; loadPlaces(state.plan.city);
+      } catch (error) { alert(error.message); history.replaceState({}, '', location.pathname); }
+    }
+    document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => {
+      document.querySelectorAll('[data-mode]').forEach((item) => item.classList.toggle('active', item === button));
+      state.budgetMode = button.dataset.mode;
+      $('#budgetLabel').textContent = state.budgetMode === 'group' ? 'الميزانية الكلية للمجموعة (جنيه)' : 'ميزانيتك للفرد (جنيه)';
+      $('#budget').value = '';
+    }));
+    $('#createForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); $('#createError').classList.add('hidden');
+      $('#createButton').disabled = true;
+      const clientId = crypto.randomUUID();
+      const body = { name:$('#creatorName').value, planType:$('#planType').value, city:$('#city').value, date:$('#date').value, expectedMembers:$('#expectedMembers').value, budgetMode:state.budgetMode, budget:$('#budget').value, clientId };
+      try {
+        const plan = await api('/api/plans', { method:'POST', body:JSON.stringify(body) });
+        localStorage.setItem(memberKey(plan.id), clientId);
+        history.pushState({}, '', `?plan=${plan.id}`); state.plan = plan; renderPlan(); $('#mapCity').value = plan.city; loadPlaces(plan.city);
+      } catch (error) { showError($('#createError'), error.message); }
+      finally { $('#createButton').disabled = false; }
+    });
+    $('#suggestForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); $('#suggestError').classList.add('hidden');
+      try {
+        state.plan = await api(`/api/plans/${state.plan.id}`, { method:'POST', body:JSON.stringify({ action:'suggest', clientId:memberIdFor(state.plan.id), name:$('#suggestName').value, cost:$('#suggestCost').value }) });
+        $('#suggestName').value = ''; $('#suggestCost').value = ''; renderPlan();
+      } catch (error) { showError($('#suggestError'), error.message); }
+    });
+    $('#mapCity').addEventListener('change', (event) => { $('#city').value = event.target.value; loadPlaces(event.target.value); });
+    $('#city').addEventListener('change', (event) => { $('#mapCity').value = event.target.value; loadPlaces(event.target.value); });
+    $('#placeSearch').addEventListener('input', renderPlaces);
+    $('#copyLink').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText($('#shareLink').value); $('#copyStatus').textContent = 'تم نسخ رابط الدعوة.'; }
+      catch { $('#shareLink').select(); $('#copyStatus').textContent = 'انسخ الرابط لمشاركته.'; }
+    });
+    $('#backButton').addEventListener('click', () => { history.pushState({}, '', location.pathname); location.reload(); });
+    window.addEventListener('popstate', () => { const id = new URLSearchParams(location.search).get('plan'); if (id) openPlan(id); else location.reload(); });
+    const $$ = (selector) => document.querySelectorAll(selector);
+    const queryPlan = new URLSearchParams(location.search).get('plan');
+    if (queryPlan) openPlan(queryPlan); else loadPlaces($('#mapCity').value);
+  </script>
+</body>
+</html>
+
+
+

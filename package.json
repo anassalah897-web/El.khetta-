@@ -1,0 +1,16 @@
+{
+  "name": "yalla-nkhattat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Group outing and trip planner for Egypt",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}
