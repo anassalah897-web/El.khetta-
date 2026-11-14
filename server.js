@@ -287,7 +287,17 @@ async function handle(req, res) {
       return sendJson(res, 403, { error: 'انضم للخطة قبل التعديل أو التصويت.' });
     }
 
-    if (action === 'setCost') {
+    if (action === 'addPlace') {
+      const files = { 'القاهرة': 'cairo', 'الجيزة': 'giza', 'الإسكندرية': 'alexandria' };
+      const placeFile = files[plan.city];
+      if (!placeFile || typeof body.placeId !== 'string') return sendJson(res, 400, { error: 'المكان غير صالح.' });
+      const placeData = JSON.parse(fs.readFileSync(path.join(ROOT, 'public', 'places', `${placeFile}.json`), 'utf8'));
+      const place = (placeData.places || []).find((item) => item.id === body.placeId);
+      if (!place || !Number.isFinite(place.estimatedCost)) return sendJson(res, 404, { error: 'تعذر تحديد تقدير سعر المكان.' });
+      if (plan.activities.some((item) => item.kind === 'place' && item.placeId === place.id)) return sendJson(res, 409, { error: 'المكان موجود بالفعل في الخطة.' });
+      plan.activities.push({ id: randomUUID(), placeId: place.id, name: place.name, category: `${place.type} · ${place.priceBand}`, time: 'وقت مقترح', cost: place.estimatedCost, kind: 'place', addedBy: clientId, votes: [clientId], selected: false, lat: place.lat, lon: place.lon, osmUrl: place.osmUrl });
+      refreshSelections(plan);
+    } else if (action === 'setCost') {
       const activity = plan.activities.find((item) => item.id === body.activityId);
       const cost = Number(body.cost);
       if (!activity) return sendJson(res, 404, { error: 'النشاط غير موجود.' });

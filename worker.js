@@ -213,7 +213,19 @@ async function handleApi(request, env, url) {
     return json(cleanPlan(plan));
   }
   if (!plan.participants.some((member) => member.id === clientId)) return json({ error: 'انضم للخطة قبل التعديل أو التصويت.' }, 403);
-  if (action === 'setCost') {
+  if (action === 'addPlace') {
+    const files = { 'القاهرة': 'cairo', 'الجيزة': 'giza', 'الإسكندرية': 'alexandria' };
+    const placeFile = files[plan.city];
+    if (!placeFile || typeof body.placeId !== 'string') return json({ error: 'المكان غير صالح.' }, 400);
+    const placesResponse = await env.ASSETS.fetch(new Request(new URL(`/places/${placeFile}.json`, url)));
+    if (!placesResponse.ok) return json({ error: 'قائمة الأماكن غير متاحة.' }, 503);
+    const placeData = await placesResponse.json();
+    const place = (placeData.places || []).find((item) => item.id === body.placeId);
+    if (!place || !Number.isFinite(place.estimatedCost)) return json({ error: 'تعذر تحديد تقدير سعر المكان.' }, 404);
+    if (plan.activities.some((item) => item.kind === 'place' && item.placeId === place.id)) return json({ error: 'المكان موجود بالفعل في الخطة.' }, 409);
+    plan.activities.push({ id: crypto.randomUUID(), placeId: place.id, name: place.name, category: `${place.type} · ${place.priceBand}`, time: 'وقت مقترح', cost: place.estimatedCost, kind: 'place', addedBy: clientId, votes: [clientId], selected: false, lat: place.lat, lon: place.lon, osmUrl: place.osmUrl });
+    refreshSelections(plan);
+  } else if (action === 'setCost') {
     const activity = plan.activities.find((item) => item.id === body.activityId);
     const cost = Number(body.cost);
     if (!activity) return json({ error: 'النشاط غير موجود.' }, 404);
