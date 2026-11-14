@@ -41,9 +41,9 @@
     </main>
 
     <section class="section" id="mapSection">
-        <div class="section-head"><div><h2>اكتشف مطاعم وكافيهات</h2><div class="hint" id="mapHint">الاقتراحات ظاهرة هنا. اضغط «اعرف الطريق» لعرض موقع المكان.</div></div><div class="map-tools"><select id="mapCity" aria-label="اختيار المدينة"><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div></div>
+        <div class="section-head"><div><h2>اكتشف مطاعم وكافيهات</h2><div class="hint" id="mapHint">قائمة محلية ثابتة من OpenStreetMap. اضغط «اعرف الطريق» لفتح الوجهة على Google Maps.</div></div><div class="map-tools"><select id="mapCity" aria-label="اختيار المدينة"><option>القاهرة</option><option>الجيزة</option><option>الإسكندرية</option></select></div></div>
       <div class="map-layout"><div class="place-panel"><input class="place-search" id="placeSearch" placeholder="ابحث عن مطعم أو كافيه"><div class="place-list" id="placeList"><div class="empty">جاري تحميل الأماكن…</div></div></div><div id="mapPanel" class="hidden"><div id="map" class="map" aria-label="خريطة المكان"></div><div class="share-row"><span id="routeStatus" class="hint">موقع العميل لا يُطلب إلا عند اختيار «اعرف الطريق».</span><a id="directionsLink" class="primary hidden" target="_blank" rel="noreferrer">افتح الاتجاهات في خرائط Google ↗</a></div></div></div>
-      <div class="notice">مواقع الأماكن لا تظهر إلا عند طلب الطريق. عندها فقط يمكن للمتصفح أن يطلب إذنك لاستخدام موقعك. أسماء الأماكن من OpenStreetMap؛ والأسعار يضيفها الأعضاء عند اقتراح المكان. © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.</div>
+      <div class="notice">اقتراحات المطاعم والكافيهات محفوظة محليًا من بيانات OpenStreetMap؛ قد لا تشمل كل الأماكن وتتحدث عند تحديث ملف البيانات. الأسعار يضيفها الأعضاء عند إدراج المكان في الخطة. © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a> · البيانات بترخيص ODbL. يطلب الموقع إذنك للموقع الجغرافي فقط عند اختيار «اعرف الطريق».</div>
     </section>
 
     <main id="planPage" class="hidden">
@@ -70,7 +70,7 @@
   <script>
     const $ = (selector) => document.querySelector(selector);
     const money = (value) => `${Number(value || 0).toLocaleString('ar-EG')} ج.م`;
-    const state = { budgetMode: 'individual', plan: null, places: [], map: null, markers: null, userLocation: null, activePlace: null, locationAsked: false };
+    const state = { budgetMode: 'individual', plan: null, places: [], placesSource: '', map: null, markers: null, userLocation: null, activePlace: null, locationAsked: false };
     const memberKey = (planId) => `yalla-member-${planId}`;
     const memberIdFor = (planId) => {
       let id = localStorage.getItem(memberKey(planId));
@@ -114,11 +114,11 @@
       if (!places.length) list.innerHTML = '<div class="empty">مفيش أماكن مطابقة حاليًا. جرّب كلمة تانية أو اختار مدينة مختلفة.</div>';
       else list.innerHTML = places.map((place) => {
         const dist = distanceKm(place.lat, place.lon);
-        const meta = [place.cuisine, place.address, place.openingHours, dist !== null ? `${dist.toFixed(1)} كم من موقعك` : 'اضغط على الخريطة لمشاهدة المكان'].filter(Boolean).join(' · ');
+        const meta = [place.cuisine, place.address, place.rating ? `★ ${place.rating}${place.ratingCount ? ` (${place.ratingCount.toLocaleString('ar-EG')})` : ''}` : '', dist !== null ? `${dist.toFixed(1)} كم من موقعك` : 'اضغط على الخريطة لمشاهدة المكان'].filter(Boolean).join(' · ');
         const planButton = state.plan && state.plan.participants.some((p) => p.id === memberIdFor(state.plan.id))
           ? `<div class="place-actions"><input class="price-input" data-price="${escapeHtml(place.id)}" type="number" min="0" placeholder="السعر للفرد"><button class="small-button" data-add-place="${escapeHtml(place.id)}">أضف للخطة</button></div>`
           : '';
-        return `<article class="place-card"><div class="place-title">${escapeHtml(place.name)} <span class="place-badge">${escapeHtml(place.type)}</span></div><div class="place-meta">${escapeHtml(meta || 'الموقع مخفي لحد ما تطلبه')}</div><button class="small-button" type="button" data-show-place="${escapeHtml(place.id)}">اعرف الطريق</button>${planButton}<button class="photo-button" type="button" data-photos="${escapeHtml(place.id)}">شوف صور المكان</button><div class="photo-gallery hidden" id="photos-${escapeHtml(place.id)}"></div></article>`;
+        return `<article class="place-card"><div class="place-title">${escapeHtml(place.name)} <span class="place-badge">${escapeHtml(place.type)}</span></div><div class="place-meta">${escapeHtml(meta || 'الموقع مخفي لحد ما تطلبه')}</div><button class="small-button" type="button" data-show-place="${escapeHtml(place.id)}">اعرف الطريق</button><a class="small-button" href="${escapeHtml(place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}`)}" target="_blank" rel="noreferrer">افتح على Google Maps ↗</a>${planButton}<button class="photo-button" type="button" data-photos="${escapeHtml(place.id)}">شوف صور المكان</button><div class="photo-gallery hidden" id="photos-${escapeHtml(place.id)}"></div></article>`;
       }).join('');
       if (state.markers) {
         state.markers.clearLayers();
@@ -203,9 +203,15 @@
       $('#mapHint').textContent = 'جاري تحميل المطاعم والكافيهات القريبة…';
       $('#placeList').innerHTML = '<div class="empty">جاري تحميل الأماكن…</div>';
       try {
-        const data = await api(`/api/places?city=${encodeURIComponent(city)}`);
+        const cityFile = { 'القاهرة': 'cairo', 'الجيزة': 'giza', 'الإسكندرية': 'alexandria' }[city];
+        if (!cityFile) throw new Error('المدينة غير مدعومة.');
+        const response = await fetch(`/places/${cityFile}.json`);
+        if (!response.ok) throw new Error('تعذر تحميل قائمة الأماكن المحلية.');
+        const data = await response.json();
         state.places = data.places || [];
-        $('#mapHint').textContent = state.places.length ? `لقينا ${state.places.length.toLocaleString('ar-EG')} مطعم وكافيه في ${city}.` : `مفيش بيانات أماكن متاحة حاليًا في ${city}.`;
+        state.placesSource = 'osm-static';
+        const sourceLabel = ' · قائمة ثابتة محلية من OpenStreetMap';
+        $('#mapHint').textContent = state.places.length ? `لقينا ${state.places.length.toLocaleString('ar-EG')} مطعم وكافيه في ${city}${sourceLabel}.` : `مفيش بيانات أماكن متاحة حاليًا في ${city}.`;
         if (state.map) state.map.setView(city === 'القاهرة' ? [30.05,31.25] : city === 'الجيزة' ? [30.01,31.17] : [31.20,29.91], 12);
       } catch (error) {
         state.places = [];
@@ -232,13 +238,21 @@
       const votesNeeded = Math.floor(plan.participants.length / 2) + 1;
       $('#activityList').innerHTML = plan.activities.length ? plan.activities.map((activity) => {
         const voted = activity.votes.includes(memberIdFor(plan.id));
-        const status = activity.selected ? '<span class="selected-label">داخل البرنامج</span>' : activity.kind === 'custom' ? `<span class="waiting-label">يحتاج ${Math.max(0,votesNeeded-activity.votes.length)} تصويت</span>` : '<span class="waiting-label">خارج الميزانية</span>';
-        return `<div class="activity"><div class="time">${escapeHtml(activity.time || 'وقت مقترح')}</div><div><div class="activity-name">${escapeHtml(activity.name)}${status}</div><div class="activity-meta">${escapeHtml(activity.category || '')} · ${money(activity.cost)} للفرد${activity.osmUrl ? ` · <a href="${escapeHtml(activity.osmUrl)}" target="_blank" rel="noreferrer">الموقع ↗</a>` : ''}</div><button class="photo-button" type="button" data-plan-photos="${escapeHtml(activity.id)}">شوف صور المكان</button><div class="photo-gallery hidden" id="planphotos-${escapeHtml(activity.id)}"></div></div><button class="vote ${voted?'voted':''}" data-vote="${escapeHtml(activity.id)}">♥ ${activity.votes.length}</button></div>`;
+        const status = activity.selected ? '<span class="selected-label">داخل البرنامج</span>' : !Number.isFinite(activity.cost) ? '<span class="waiting-label">أدخل التكلفة</span>' : activity.kind === 'custom' ? `<span class="waiting-label">يحتاج ${Math.max(0,votesNeeded-activity.votes.length)} تصويت</span>` : '<span class="waiting-label">خارج الميزانية</span>';
+        const cost = Number.isFinite(activity.cost) ? `${money(activity.cost)} للفرد` : 'التكلفة غير محددة';
+        const costEditor = `<div class="place-actions"><input class="price-input" data-estimate="${escapeHtml(activity.id)}" type="number" min="0" value="${Number.isFinite(activity.cost) ? activity.cost : ''}" placeholder="التكلفة التقديرية للفرد"><button class="small-button" data-set-cost="${escapeHtml(activity.id)}">حفظ التكلفة</button></div>`;
+        return `<div class="activity"><div class="time">${escapeHtml(activity.time || 'وقت مقترح')}</div><div><div class="activity-name">${escapeHtml(activity.name)}${status}</div><div class="activity-meta">${escapeHtml(activity.category || '')} · ${cost}${activity.osmUrl ? ` · <a href="${escapeHtml(activity.osmUrl)}" target="_blank" rel="noreferrer">الموقع ↗</a>` : ''}</div>${costEditor}<button class="photo-button" type="button" data-plan-photos="${escapeHtml(activity.id)}">شوف صور المكان</button><div class="photo-gallery hidden" id="planphotos-${escapeHtml(activity.id)}"></div></div><button class="vote ${voted?'voted':''}" data-vote="${escapeHtml(activity.id)}">♥ ${activity.votes.length}</button></div>`;
       }).join('') : '<div class="empty">مفيش أماكن تناسب الميزانية الحالية. زوّد الميزانية أو غيّر المدينة.</div>';
       $('#joinPanel').classList.add('hidden'); $('#planContent').classList.remove('hidden');
       $('#shareLink').value = location.href;
       $$('[data-vote]').forEach((button) => button.addEventListener('click', async () => {
         try { state.plan = await api(`/api/plans/${plan.id}`, { method:'POST', body:JSON.stringify({ action:'vote', clientId:memberIdFor(plan.id), activityId:button.dataset.vote }) }); renderPlan(); }
+        catch (error) { alert(error.message); }
+      }));
+      $$('[data-set-cost]').forEach((button) => button.addEventListener('click', async () => {
+        const input = $(`[data-estimate="${CSS.escape(button.dataset.setCost)}"]`);
+        if (input.value.trim() === '' || Number(input.value) < 0) { alert('اكتب التكلفة التقديرية للفرد أولًا.'); return; }
+        try { state.plan = await api(`/api/plans/${plan.id}`, { method:'POST', body:JSON.stringify({ action:'setCost', clientId:memberIdFor(plan.id), activityId:button.dataset.setCost, cost:input.value }) }); renderPlan(); }
         catch (error) { alert(error.message); }
       }));
       $$('[data-plan-photos]').forEach((button) => button.addEventListener('click', async () => {
