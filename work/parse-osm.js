@@ -48,11 +48,16 @@ function addPlace(entity, lat, lon) {
   if (!city) return;
   const tags = entity.tags;
   const name = tags['name:ar'] || tags.name;
+  const nameHintsCafe = /\b(cafe|café|coffee(?:\s*shop)?|cafeteria)\b|كافيه|كافية|قهوة|مقهى|كافي/i.test(`${tags.name || ''} ${tags['name:ar'] || ''}`);
+  const nameHintsRestaurant = /\b(restaurant|resto)\b|مطعم/i.test(`${tags.name || ''} ${tags['name:ar'] || ''}`);
+  const type = nameHintsCafe && nameHintsRestaurant ? 'مطعم وكافيه'
+    : nameHintsCafe ? 'كافيه'
+      : tags.amenity === 'cafe' ? 'كافيه' : 'مطعم';
   const address = [tags['addr:housenumber'], tags['addr:street'], tags['addr:suburb'] || tags['addr:neighbourhood']].filter(Boolean).join('، ');
   const query = encodeURIComponent(`${name} ${address} ${city}`);
   const searchText = `${name} ${tags.cuisine || ''} ${tags.amenity || ''}`.toLowerCase();
   let priceBand;
-  if (tags.amenity === 'cafe') priceBand = { label: 'كافيه مع مشروب وحلو أو سناك', min: 150, max: 300 };
+  if (type === 'كافيه' || tags.amenity === 'cafe') priceBand = { label: 'كافيه مع مشروب وحلو أو سناك', min: 150, max: 300 };
   else if (/four seasons|marriott|ritz|fairmont|sofitel|hotel|resort|rooftop|fine dining|مطعم راق|مطعم سياح/.test(searchText)) priceBand = { label: 'مطعم راقٍ', min: 700, max: 1200 };
   else if (/seafood|fish|grill|barbecue|steak_house|kebab|مشويات|أسماك|اسماك|سمك|كباب/.test(searchText)) priceBand = { label: 'سمك أو مشويات', min: 350, max: 700 };
   else if (/koshary|koshari|falafel|foul|taameya|shawarma|sandwich|كشري|كشرى|فول|طعمية|فلافل|شاورما|ساندوتش|سندوتش/.test(searchText)) priceBand = { label: 'وجبة شعبية أو ساندوتش', min: 100, max: 220 };
@@ -60,7 +65,7 @@ function addPlace(entity, lat, lon) {
   const imageUrl = /^https?:\/\//i.test(tags.image || '') ? tags.image : null;
   itemsByCity.get(city).set(`${entity.type}-${entity.id}`, {
     id: `osm-${entity.type}-${entity.id}`, name, lat, lon,
-    type: tags.amenity === 'cafe' ? 'كافيه' : 'مطعم',
+    type,
     cuisine: tags.cuisine || '', address,
     openingHours: tags.opening_hours || '',
     osmUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
