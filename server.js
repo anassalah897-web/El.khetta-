@@ -10,22 +10,22 @@ const PORT = Number(process.env.PORT || 4173);
 
 const CATALOG = {
   'القاهرة': [
-    { name: 'المتحف المصري', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', cost: 180, lat: 30.0478, lon: 31.2336 },
-    { name: 'غداء في وسط البلد', category: 'أكل محلي', time: '١:٠٠ م', cost: 300, lat: 30.0470, lon: 31.2390 },
-    { name: 'جولة في شارع المعز', category: 'تمشية وتاريخ', time: '٤:٠٠ م', cost: 120, lat: 30.0470, lon: 31.2623 },
-    { name: 'قعدة على النيل', category: 'منظر النيل', time: '٧:٠٠ م', cost: 350, lat: 30.0430, lon: 31.2230 },
+    { name: 'المتحف المصري', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', lat: 30.0478, lon: 31.2336 },
+    { name: 'غداء في وسط البلد', category: 'أكل محلي', time: '١:٠٠ م', lat: 30.0470, lon: 31.2390 },
+    { name: 'جولة في شارع المعز', category: 'تمشية وتاريخ', time: '٤:٠٠ م', lat: 30.0470, lon: 31.2623 },
+    { name: 'قعدة على النيل', category: 'منظر النيل', time: '٧:٠٠ م', lat: 30.0430, lon: 31.2230 },
   ],
   'الجيزة': [
-    { name: 'منطقة أهرامات الجيزة', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', cost: 300, lat: 29.9792, lon: 31.1342 },
-    { name: 'غداء بإطلالة على الأهرامات', category: 'أكل محلي', time: '١:٠٠ م', cost: 350, lat: 29.9850, lon: 31.1370 },
-    { name: 'زيارة المتحف المصري الكبير', category: 'ثقافة', time: '٤:٠٠ م', cost: 400, lat: 29.9950, lon: 31.1193 },
-    { name: 'عشاء هادئ في الجيزة', category: 'أكل', time: '٧:٣٠ م', cost: 300, lat: 29.9920, lon: 31.1370 },
+    { name: 'منطقة أهرامات الجيزة', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', lat: 29.9792, lon: 31.1342 },
+    { name: 'غداء بإطلالة على الأهرامات', category: 'أكل محلي', time: '١:٠٠ م', lat: 29.9850, lon: 31.1370 },
+    { name: 'زيارة المتحف المصري الكبير', category: 'ثقافة', time: '٤:٠٠ م', lat: 29.9950, lon: 31.1193 },
+    { name: 'عشاء هادئ في الجيزة', category: 'أكل', time: '٧:٣٠ م', lat: 29.9920, lon: 31.1370 },
   ],
   'الإسكندرية': [
-    { name: 'قلعة قايتباي', category: 'تاريخ وبحر', time: '٩:٠٠ ص', cost: 100, lat: 31.21375, lon: 29.8854 },
-    { name: 'غداء سمك على البحر', category: 'أكل محلي', time: '١٢:٠٠ م', cost: 450, lat: 31.2130, lon: 29.9000 },
-    { name: 'مكتبة الإسكندرية', category: 'ثقافة', time: '٣:٠٠ م', cost: 150, lat: 31.2089, lon: 29.9092 },
-    { name: 'تمشية على الكورنيش', category: 'بحر وغروب', time: '٦:٠٠ م', cost: 0, lat: 31.2050, lon: 29.9150 },
+    { name: 'قلعة قايتباي', category: 'تاريخ وبحر', time: '٩:٠٠ ص', lat: 31.21375, lon: 29.8854 },
+    { name: 'غداء سمك على البحر', category: 'أكل محلي', time: '١٢:٠٠ م', lat: 31.2130, lon: 29.9000 },
+    { name: 'مكتبة الإسكندرية', category: 'ثقافة', time: '٣:٠٠ م', lat: 31.2089, lon: 29.9092 },
+    { name: 'تمشية على الكورنيش', category: 'بحر وغروب', lat: 31.2050, lon: 29.9150 },
   ],
 };
 
@@ -39,48 +39,10 @@ const photosCache = new Map();
 const PLACES_CACHE_MS = 6 * 60 * 60 * 1000;
 
 async function nearbyPlaces(city) {
-  if (!CITY_BOUNDS[city]) throw new Error('المدينة غير مدعومة.');
-  const cached = placesCache.get(city);
-  if (cached && Date.now() - cached.savedAt < PLACES_CACHE_MS) return cached.items;
-  const [south, west, north, east] = CITY_BOUNDS[city];
-  const bbox = `${south},${west},${north},${east}`;
-  const query = `[out:json][timeout:25];(node["amenity"~"cafe|restaurant"]["name"](${bbox});way["amenity"~"cafe|restaurant"]["name"](${bbox});relation["amenity"~"cafe|restaurant"]["name"](${bbox}););out center tags;`;
-  const response = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8', 'user-agent': 'YallaNkhattat/0.1 (local destination discovery)' },
-    body: `data=${encodeURIComponent(query)}`,
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!response.ok) throw new Error(`مصدر بيانات الأماكن غير متاح حاليًا (${response.status}).`);
-  const data = await response.json();
-  const center = city === 'القاهرة' ? [30.05, 31.25] : city === 'الجيزة' ? [30.01, 31.17] : [31.20, 29.91];
-  const items = (data.elements || []).flatMap((element) => {
-    const tags = element.tags || {};
-    const lat = element.lat ?? element.center?.lat;
-    const lon = element.lon ?? element.center?.lon;
-    if (!tags.name || !Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-    const amenity = tags.amenity;
-    const address = [tags['addr:street'], tags['addr:housenumber'], tags['addr:suburb']].filter(Boolean).join('، ');
-    return [{
-      id: `osm-${element.type}-${element.id}`,
-      name: tags['name:ar'] || tags.name,
-      lat, lon,
-      type: amenity === 'cafe' ? 'كافيه' : 'مطعم',
-      cuisine: tags.cuisine || '',
-      address,
-      openingHours: tags.opening_hours || '',
-      price: null,
-      osmUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
-    }];
-  });
-  items.sort((a, b) => {
-    const da = (a.lat - center[0]) ** 2 + (a.lon - center[1]) ** 2;
-    const db = (b.lat - center[0]) ** 2 + (b.lon - center[1]) ** 2;
-    return da - db;
-  });
-  const result = items.slice(0, 160);
-  placesCache.set(city, { items: result, savedAt: Date.now() });
-  return result;
+  const files = { 'القاهرة': 'cairo', 'الجيزة': 'giza', 'الإسكندرية': 'alexandria' };
+  if (!files[city]) throw new Error('المدينة غير مدعومة.');
+  const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'public', 'places', `${files[city]}.json`), 'utf8'));
+  return data.places || [];
 }
 
 function plainText(value) {
@@ -186,7 +148,7 @@ function refreshSelections(plan) {
   let remaining = budgetCap(plan);
   for (const activity of plan.activities) {
     const isSupported = activity.kind === 'catalog' || activity.votes.length > plan.participants.length / 2;
-    activity.selected = isSupported && activity.cost <= remaining;
+    activity.selected = isSupported && Number.isFinite(activity.cost) && activity.cost <= remaining;
     if (activity.selected) remaining -= activity.cost;
   }
 }
@@ -239,7 +201,7 @@ async function handle(req, res) {
     const city = text(url.searchParams.get('city'), 40);
     try {
       const places = await nearbyPlaces(city);
-      return sendJson(res, 200, { city, attribution: '© OpenStreetMap contributors', places });
+      return sendJson(res, 200, { city, source: 'osm-static', attribution: '© OpenStreetMap contributors', places });
     } catch (error) {
       console.error(error.message);
       return sendJson(res, 503, { error: error.message, places: [] });
@@ -325,7 +287,14 @@ async function handle(req, res) {
       return sendJson(res, 403, { error: 'انضم للخطة قبل التعديل أو التصويت.' });
     }
 
-    if (action === 'suggest') {
+    if (action === 'setCost') {
+      const activity = plan.activities.find((item) => item.id === body.activityId);
+      const cost = Number(body.cost);
+      if (!activity) return sendJson(res, 404, { error: 'النشاط غير موجود.' });
+      if (body.cost === undefined || String(body.cost).trim() === '' || !Number.isFinite(cost) || cost < 0 || cost > 1_000_000) return sendJson(res, 400, { error: 'أدخل تكلفة تقديرية صحيحة للفرد.' });
+      activity.cost = cost;
+      refreshSelections(plan);
+    } else if (action === 'suggest') {
       const name = text(body.name, 80);
       const cost = Number(body.cost);
       const lat = Number(body.lat);
@@ -360,6 +329,12 @@ async function handle(req, res) {
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
     const file = fs.readFileSync(path.join(ROOT, 'public', 'index.html'));
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': file.length });
+    return res.end(file);
+  }
+  const placeFile = url.pathname.match(/^\/places\/(cairo|giza|alexandria)\.json$/);
+  if (req.method === 'GET' && placeFile) {
+    const file = fs.readFileSync(path.join(ROOT, 'public', 'places', `${placeFile[1]}.json`));
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'content-length': file.length, 'cache-control': 'public, max-age=3600' });
     return res.end(file);
   }
   return sendJson(res, 404, { error: 'الصفحة غير موجودة.' });

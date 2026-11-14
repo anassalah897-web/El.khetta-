@@ -3,6 +3,7 @@ data/plans.json.tmp
 node_modules/
 .wrangler/
 .wrangler-config/
+work/
 .dev.vars
 .env
 .env.*

@@ -1,27 +1,32 @@
 const CATALOG = {
   'القاهرة': [
-    { name: 'المتحف المصري', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', cost: 180, lat: 30.0478, lon: 31.2336 },
-    { name: 'غداء في وسط البلد', category: 'أكل محلي', time: '١:٠٠ م', cost: 300, lat: 30.047, lon: 31.239 },
-    { name: 'جولة في شارع المعز', category: 'تمشية وتاريخ', time: '٤:٠٠ م', cost: 120, lat: 30.047, lon: 31.2623 },
-    { name: 'قعدة على النيل', category: 'منظر النيل', time: '٧:٠٠ م', cost: 350, lat: 30.043, lon: 31.223 },
+    { name: 'المتحف المصري', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', lat: 30.0478, lon: 31.2336 },
+    { name: 'غداء في وسط البلد', category: 'أكل محلي', time: '١:٠٠ م', lat: 30.047, lon: 31.239 },
+    { name: 'جولة في شارع المعز', category: 'تمشية وتاريخ', time: '٤:٠٠ م', lat: 30.047, lon: 31.2623 },
+    { name: 'قعدة على النيل', category: 'منظر النيل', time: '٧:٠٠ م', lat: 30.043, lon: 31.223 },
   ],
   'الجيزة': [
-    { name: 'منطقة أهرامات الجيزة', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', cost: 300, lat: 29.9792, lon: 31.1342 },
-    { name: 'غداء بإطلالة على الأهرامات', category: 'أكل محلي', time: '١:٠٠ م', cost: 350, lat: 29.985, lon: 31.137 },
-    { name: 'زيارة المتحف المصري الكبير', category: 'ثقافة', time: '٤:٠٠ م', cost: 400, lat: 29.995, lon: 31.1193 },
-    { name: 'عشاء هادئ في الجيزة', category: 'أكل', time: '٧:٣٠ م', cost: 300, lat: 29.992, lon: 31.137 },
+    { name: 'منطقة أهرامات الجيزة', category: 'تاريخ وثقافة', time: '٩:٠٠ ص', lat: 29.9792, lon: 31.1342 },
+    { name: 'غداء بإطلالة على الأهرامات', category: 'أكل محلي', time: '١:٠٠ م', lat: 29.985, lon: 31.137 },
+    { name: 'زيارة المتحف المصري الكبير', category: 'ثقافة', time: '٤:٠٠ م', lat: 29.995, lon: 31.1193 },
+    { name: 'عشاء هادئ في الجيزة', category: 'أكل', time: '٧:٣٠ م', lat: 29.992, lon: 31.137 },
   ],
   'الإسكندرية': [
-    { name: 'قلعة قايتباي', category: 'تاريخ وبحر', time: '٩:٠٠ ص', cost: 100, lat: 31.21375, lon: 29.8854 },
-    { name: 'غداء سمك على البحر', category: 'أكل محلي', time: '١٢:٠٠ م', cost: 450, lat: 31.213, lon: 29.9 },
-    { name: 'مكتبة الإسكندرية', category: 'ثقافة', time: '٣:٠٠ م', cost: 150, lat: 31.2089, lon: 29.9092 },
-    { name: 'تمشية على الكورنيش', category: 'بحر وغروب', time: '٦:٠٠ م', cost: 0, lat: 31.205, lon: 29.915 },
+    { name: 'قلعة قايتباي', category: 'تاريخ وبحر', time: '٩:٠٠ ص', lat: 31.21375, lon: 29.8854 },
+    { name: 'غداء سمك على البحر', category: 'أكل محلي', time: '١٢:٠٠ م', lat: 31.213, lon: 29.9 },
+    { name: 'مكتبة الإسكندرية', category: 'ثقافة', time: '٣:٠٠ م', lat: 31.2089, lon: 29.9092 },
+    { name: 'تمشية على الكورنيش', category: 'بحر وغروب', time: '٦:٠٠ م', lat: 31.205, lon: 29.915 },
   ],
 };
 const CITY_BOUNDS = {
   'القاهرة': [29.93, 31.14, 30.17, 31.42],
   'الجيزة': [29.9, 31.04, 30.13, 31.33],
   'الإسكندرية': [31.08, 29.76, 31.3, 30.12],
+};
+const CITY_CENTERS = {
+  'القاهرة': { latitude: 30.0444, longitude: 31.2357 },
+  'الجيزة': { latitude: 29.987, longitude: 31.2118 },
+  'الإسكندرية': { latitude: 31.2001, longitude: 29.9187 },
 };
 const OVERPASS_ENDPOINTS = [
   'https://overpass.private.coffee/api/interpreter',
@@ -44,7 +49,7 @@ function refreshSelections(plan) {
   let remaining = budgetCap(plan);
   for (const activity of plan.activities) {
     const supported = activity.kind === 'catalog' || activity.votes.length > plan.participants.length / 2;
-    activity.selected = supported && activity.cost <= remaining;
+    activity.selected = supported && Number.isFinite(activity.cost) && activity.cost <= remaining;
     if (activity.selected) remaining -= activity.cost;
   }
 }
@@ -62,7 +67,36 @@ async function savePlan(db, plan) {
     ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at, payload = excluded.payload`)
     .bind(plan.id, plan.createdAt, plan.updatedAt, JSON.stringify(plan)).run();
 }
-async function nearbyPlaces(city) {
+async function nearbyPlacesFromHere(city, apiKey) {
+  const center = CITY_CENTERS[city];
+  if (!center) throw new Error('المدينة غير مدعومة.');
+  const cached = placesCache.get(`here:${city}`);
+  if (cached && Date.now() - cached.savedAt < PLACES_CACHE_MS) return cached.items;
+  const circle = `circle:${center.latitude},${center.longitude};r=25000`;
+  const searches = await Promise.all(['restaurant', 'cafe'].map(async (query) => {
+    const params = new URLSearchParams({ q: query, in: circle, lang: 'ar', limit: '15', apiKey });
+    const response = await fetch(`https://discover.search.hereapi.com/v1/discover?${params}`, { signal: AbortSignal.timeout(12000) });
+    if (!response.ok) throw new Error(`HERE Geocoding and Search أعاد الخطأ ${response.status}.`);
+    return response.json();
+  }));
+  const items = [...new Map(searches.flatMap((data, searchIndex) => (data.items || []).flatMap((item) => {
+    const lat = item.position?.lat, lon = item.position?.lng;
+    if (!item.id || !item.title || !Number.isFinite(lat) || !Number.isFinite(lon) || item.resultType !== 'place') return [];
+    const address = item.address?.label || '';
+    const cuisine = (item.foodTypes || []).map((food) => food.name).join('، ');
+    const openingHours = (item.openingHours?.[0]?.text || []).join(' · ');
+    return [[item.id, {
+      id: `here-${item.id}`, name: item.title, lat, lon,
+      type: searchIndex === 1 ? 'كافيه' : 'مطعم', cuisine, address, openingHours,
+      hereId: item.id,
+      googleMapsUri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.title} ${address}`)}`,
+      osmUrl: mapUrl(lat, lon),
+    }]];
+  })))].map(([, item]) => item);
+  placesCache.set(`here:${city}`, { items, savedAt: Date.now() });
+  return items;
+}
+async function nearbyPlacesFromOsm(city) {
   if (!CITY_BOUNDS[city]) throw new Error('المدينة غير مدعومة.');
   const cached = placesCache.get(city);
   if (cached && Date.now() - cached.savedAt < PLACES_CACHE_MS) return cached.items;
@@ -130,8 +164,12 @@ async function handleApi(request, env, url) {
   }
   if (request.method === 'GET' && url.pathname === '/api/places') {
     const city = text(url.searchParams.get('city'), 40);
-    try { return json({ city, attribution: '© OpenStreetMap contributors', places: await nearbyPlaces(city) }); }
-    catch (error) { return json({ error: error.message, places: [] }, 503); }
+    const files = { 'القاهرة': 'cairo', 'الجيزة': 'giza', 'الإسكندرية': 'alexandria' };
+    if (!files[city]) return json({ error: 'المدينة غير مدعومة.', places: [] }, 400);
+    const response = await env.ASSETS.fetch(new Request(new URL(`/places/${files[city]}.json`, url)));
+    if (!response.ok) return json({ error: 'قائمة الأماكن غير متاحة.', places: [] }, 503);
+    const data = await response.json();
+    return json({ city, source: 'osm-static', attribution: data.attribution, places: data.places || [] });
   }
   if (request.method === 'GET' && url.pathname === '/api/photos') {
     const name = text(url.searchParams.get('name'), 80), city = text(url.searchParams.get('city'), 40);
@@ -175,7 +213,14 @@ async function handleApi(request, env, url) {
     return json(cleanPlan(plan));
   }
   if (!plan.participants.some((member) => member.id === clientId)) return json({ error: 'انضم للخطة قبل التعديل أو التصويت.' }, 403);
-  if (action === 'suggest') {
+  if (action === 'setCost') {
+    const activity = plan.activities.find((item) => item.id === body.activityId);
+    const cost = Number(body.cost);
+    if (!activity) return json({ error: 'النشاط غير موجود.' }, 404);
+    if (body.cost === undefined || String(body.cost).trim() === '' || !Number.isFinite(cost) || cost < 0 || cost > 1000000) return json({ error: 'أدخل تكلفة تقديرية صحيحة للفرد.' }, 400);
+    activity.cost = cost;
+    refreshSelections(plan);
+  } else if (action === 'suggest') {
     const name = text(body.name, 80), cost = Number(body.cost), lat = Number(body.lat), lon = Number(body.lon);
     if (!name || body.cost === undefined || body.cost === null || String(body.cost).trim() === '' || !Number.isFinite(cost) || cost < 0 || cost > 1000000) return json({ error: 'أدخل اسم المكان وتكلفته التقديرية للفرد.' }, 400);
     plan.activities.push({ id: crypto.randomUUID(), name, category: 'اقتراح من المجموعة', time: 'وقت مقترح', cost, kind: 'custom', addedBy: clientId, votes: [clientId], selected: false,
